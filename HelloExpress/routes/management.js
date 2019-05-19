@@ -111,7 +111,7 @@ router.get('/myinfo/set_phone', function(req, res, next) {
 
 router.post('/myinfo/set_phone', function(req, res, next) {
   var body = req.body;
-  sql = "UPDATE User SET PhoneNumber = '"+ body.phone +"' WHERE user_index = " + String(userID) ;
+  sql = "UPDATE User SET phoneNumber = '"+ body.phone +"' WHERE user_index = " + String(userID) ;
   connection.query(sql, function (err, result) {
     if (err) throw err;
     console.log(result.affectedRows + " record(s) updated");
