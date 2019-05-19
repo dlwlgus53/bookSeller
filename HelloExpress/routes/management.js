@@ -251,29 +251,6 @@ router.post('/subscribe/deleteAlarm', function(req, res, next) {
   });
 });
 
-/*관리->계정관리->유저 관심 카테고리*/
-
-// router.get('/subscribe/interest_category', function(req, res, next) {
-//   userID = req.session.userID;
-//   sql = "SELECT t2.content, t2.category_id FROM \
-//         (SELECT * FROM User_Interest_Category WHERE user_index = ?) t1 \
-//         LEFT JOIN (SELECT * FROM Category) t2 \
-//         ON t1.category_id=t2.category_id;"+
-//         "SELECT * FROM Category";
-//   connection.query(sql,[userID],function(err, result, fields){
-//     console.log(result[1]);
-//     if(!result){
-//       res.render('alert', {message : '관심 카테고리가 설정되지 않았습니다'}); 
-//     }
-//     if(err){
-//       console.log(err);
-//     }
-//     obj = 
-//     {fav_cates:result[0],
-//     categories:result[1]};
-//     res.render('management/subscribe/interest_category', obj);               
-//   });
-// });
 
 /*관리->구독관리->alarm 삭제*/
 router.post('/subscribe/addInterestCategory', function(req, res, next) {
