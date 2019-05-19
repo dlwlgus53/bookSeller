@@ -287,8 +287,8 @@ router.post('/user/addUser', function(req, res, next) {
   var body = req.body;
   var sql;
   sql =  "SELECT COUNT (user_index) as count FROM User WHERE email = '" + body.email + "'";
-  connection.beginTransaction(function(err) {
-    if (err) {throw err;}
+  // connection.beginTransaction(function(err) {
+    // if (err) {throw err;}
     connection.query(sql,function(err, result, fields){
     if (err) throw err;
     else if(result && result[0].count ==1){
@@ -309,18 +309,24 @@ router.post('/user/addUser', function(req, res, next) {
               throw err;
         })
       }else{
+        
         connection.query("SELECT user_index FROM User WHERE " + "'" + body.email + "' = email",
         function(err, result, fields){
           if (err) throw err;
           else{
             userID = result[0].user_index;
+            console.log(result)
             var libraryName = "유명한 여행가의 서재_" + String(userID);
             var nickName = "유명한 여행가_"+ String(userID);
             sql = "UPDATE User SET libraryName = '" + libraryName+"', NickName = '"+ nickName +"' WHERE user_index = " + String(userID)+";" +
             "INSERT INTO Buy (user_index, from_date, to_date) VALUES ("+userID+", NOW(), date_add(NOW(), INTERVAL 1 MONTH));";
+            
             connection.query(sql, function (err, result) {
               if (err) throw err;
-              console.log(result.affectedRows + " record(s) updated");
+              else{
+                console.log(result[0].affectedRows + " record(s) updated");
+
+              }
             });
             console.log(userID);
             res.redirect("/");
@@ -331,7 +337,7 @@ router.post('/user/addUser', function(req, res, next) {
     };
     });
   });
-});
+// });
 
 
 
