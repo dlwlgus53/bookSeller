@@ -43,7 +43,9 @@
                 <div class = "left">
                     <p>필명 : <%= user[0].nickName %></p>
                     <p>구독자 : <%= follower[0].count %> 구독중 : <%= following[0].count %> </p>
-                    <p>공지사항은 여기다 나오게 하면 되겠죠?</p>
+                    <% notices.forEach(function(notice) { %>
+                        <p><%= notice.title %>&nbsp</p>
+                    <% }) %>
                     <p><%= user[0].libraryDescription %></p>
                 </div>
                 <table>
