@@ -345,4 +345,32 @@ router.post('/subscribe/set_quote', function(req, res, next) {
   });
 });
 
+/*관리->공지사항*/
+router.get('/notice', function(req, res, next) {
+  sql = "SELECT * FROM Notice WHERE is_deleted=0"
+    connection.query(sql,function(err, result, fields){
+    if(err){
+      console.log(err);
+    }
+    obj = 
+    {notices: result};
+    res.render('management/notice', obj);               
+  });
+});
+
+/*관리->공지사항*/
+router.get('/detailNotice', function(req, res, next) {
+  var nid=req.param("nid");
+  sql = "SELECT *, date_format(datetime, '%Y-%m-%d') AS pubDate FROM Notice WHERE is_deleted=0 AND notice_id=?";
+    connection.query(sql,[nid],function(err, result, fields){
+    if(err){
+      console.log(err);
+    }
+    console.log(result);
+    obj = 
+    {notices: result};
+    res.render('management/detailNotice', obj);               
+  });
+});
+
 module.exports = router;

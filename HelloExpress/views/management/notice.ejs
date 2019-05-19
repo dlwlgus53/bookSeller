@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="kr">
+<head>
+    <meta charset="UTF-8">
+    <link rel='stylesheet' href='/stylesheets/home.css' />
+    <title>도비의 서재</title>
+    <center><h1 class="header">도비의 서재</h1></center>
+</head>
+<body> 
+    <div class = "main_menu">
+        <center>
+            <% slink = "http://localhost:3000/shelf?sid=" + -1 %>
+            <h2 id ="menu"><a href ="http://localhost:3000">홈</a>
+            </h2> <h2 id ="menu"><a href ="http://localhost:3000/search">검색</a>
+            </h2> <h2 id ="menu"><a href =<%= slink %>>내 서재</a></h2>
+            <h2 id ="menu"><a href ="http://localhost:3000/management">관리</a></h2>
+        </center>
+    </div> 
+    <hr />
+    <div>
+        <center>
+            <h2>공지사항</h2>
+            <div class = "column">
+                <table>
+                    <tr>
+                        <% notices.forEach(function(notice) { %>
+                          <% link = "http://localhost:3000/management/detailNotice?nid=" + notice.notice_id %>
+                          <p><a href=<%= link %>><%= notice.title %>&nbsp</a></p>
+                  <% }) %>
+                    </tr>
+                </table>
+            </div>
+    </div>
+</center>
+</body>
+</html>
