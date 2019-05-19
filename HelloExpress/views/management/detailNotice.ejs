@@ -24,6 +24,10 @@
             <div>
                 <p>글 내용 : <%= notices[0].content %></p>
             </div>
+            <% link = "http://localhost:3000/management/delNotice?nid=" + notices[0].notice_id %>
+            <form action=<%= link %> method="POST" >
+              <button>삭제</button>
+            </form>
         </center>
     </div>
 

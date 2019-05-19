@@ -373,4 +373,20 @@ router.get('/detailNotice', function(req, res, next) {
   });
 });
 
+//태그 삭제
+router.post('/delNotice', function(req, res, next) {
+
+  var nid = req.param("nid");
+  sql = "UPDATE Notice SET is_deleted=1 WHERE (notice_id="+String(nid)+");";
+  connection.query(sql, function (err, result) {
+    console.log(err);
+    console.log(result);
+    if (err) {
+      console.log("del_notice 쿼리에 문제가 있습니다.");
+      console.log(err);
+    }
+    res.redirect("/management/notice");
+  });
+
+});
 module.exports = router;
