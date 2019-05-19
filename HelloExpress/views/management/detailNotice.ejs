@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="kr">
+<head>
+    <meta charset="UTF-8">
+    <link rel='stylesheet' href='/stylesheets/home.css' />
+    <title>도비의 서재</title>
+</head>
+<body> 
+    <div class = "main_menu">
+        <center>
+            <h2 id ="menu"><a href ="http://localhost:3000">홈</a>
+            </h2> <h2 id ="menu"><a href ="http://localhost:3000/search">검색</a>
+            </h2> <h2 id ="menu"><a href ="http://localhost:3000/shelf">내 서재</a></h2>
+            <h2 id ="menu"><a href ="http://localhost:3000/management">관리</a></h2>
+        </center>
+    </div>
+    
+    <hr />
+    <div>
+        <center>
+            <h1>Notice</h1>
+            <h3>제목 : <%= notices[0].title %></h3>
+            <p>날짜 : <%= notices[0].pubDate %></p>
+            <div>
+                <p>글 내용 : <%= notices[0].content %></p>
+            </div>
+        </center>
+    </div>
+
+</body>
+</html>

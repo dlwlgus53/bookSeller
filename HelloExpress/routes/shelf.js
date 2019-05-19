@@ -86,8 +86,9 @@ router.get('/', function(req, res, next) {
       "SELECT nickName, User.user_index\
       FROM User\
       INNER JOIN Subscribe\
-      ON User.user_index=Subscribe.follower_id AND'" + ownerID + "' = Subscribe.user_index;";
-
+      ON User.user_index=Subscribe.follower_id AND'" + ownerID + "' = Subscribe.user_index;"+
+      //[16]서재 공지사항
+      "SELECT * FROM class.Announcement WHERE is_deleted=0;";
     connection.query(sql,function(err, result, fields){
       if (err) throw err;
       else{
@@ -109,7 +110,8 @@ router.get('/', function(req, res, next) {
           quotes : result[13],
           following_n : result[14],
           follower_n :result[15],
-          me : {user_index : userID}
+          me : {user_index : userID},
+          notices : result[16]
         };
         // console.log(obj);
         res.render('shelf',obj);
