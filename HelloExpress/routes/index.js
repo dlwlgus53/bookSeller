@@ -52,7 +52,7 @@ router.post('/user/login', function(req, res, next) {
         else{
           var today = new Date();
           console.log(result[0][0]);
-          console.log(result[1][0].to_date);
+          // console.log(result[1][0].to_date);
           console.log(result[0][0].user_index);
           console.log(today);
           console.log(sql);
@@ -66,7 +66,7 @@ router.post('/user/login', function(req, res, next) {
           
           // console.log(result[1].to_date);
           //정기결제 설정 && 결제일 지났으면 결제 페이지로 이동
-          if(result[1][0].to_date <= today){
+          if(result[1][0].to_date==null || result[1][0].to_date <= today){
             if(result[0][0].auto!=0){
               console.log("정기결제");
               sql = "INSERT INTO Buy (user_index, from_date, to_date) VALUES ("+userID+", NOW(), date_add(NOW(), INTERVAL 1 MONTH));";
@@ -299,7 +299,7 @@ router.post('/user/addUser', function(req, res, next) {
       //   body.email, body.password, body.name, body.sns
       // ])
       sql="INSERT INTO User  (email, Password, Name, Sns) \
-      VALUES('"+ body.email +"','"+ body.password +"','"+body.name+"','"+body.sns+"');"
+      VALUES('"+ body.email +"','"+ body.password +"','"+body.name+"','"+body.sns+"');";
 
       connection.query(sql, function(err, result, fields){
         if(err){
@@ -316,7 +316,8 @@ router.post('/user/addUser', function(req, res, next) {
             userID = result[0].user_index;
             var libraryName = "유명한 여행가의 서재_" + String(userID);
             var nickName = "유명한 여행가_"+ String(userID);
-            sql = "UPDATE User SET libraryName = '" + libraryName+"', NickName = '"+ nickName +"' WHERE user_index = " + String(userID) ;
+            sql = "UPDATE User SET libraryName = '" + libraryName+"', NickName = '"+ nickName +"' WHERE user_index = " + String(userID)+";" +
+            "INSERT INTO Buy (user_index, from_date, to_date) VALUES ("+userID+", NOW(), date_add(NOW(), INTERVAL 1 MONTH));";
             connection.query(sql, function (err, result) {
               if (err) throw err;
               console.log(result.affectedRows + " record(s) updated");
