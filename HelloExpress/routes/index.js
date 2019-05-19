@@ -1,14 +1,15 @@
 var express = require('express');
 var router = express.Router();
 var mysql = require("mysql");
+var db_config = require('./db_config.json');
 
 var connection = mysql.createConnection({
   connectionLimit: 100,
-  host : 'dbdbdb.cibpms4ouvxz.us-east-2.rds.amazonaws.com',
+  host : db_config.host,
   port : 3306,
-  user: 'root',
-  password: 'qwer1234',
-  database: 'class',
+  user: db_config.user,
+  password: db_config.password,
+  database: db_config.database,
   multipleStatements: true,
 });
 
