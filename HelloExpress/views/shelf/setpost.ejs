@@ -28,33 +28,69 @@
                 <table>
                     <% if(post_id==-1){%>
                     <tr>
-                        <td colspan="2">제목<input name="title"  type="text" ></input></td>
+                        <td>제목
+                                <textarea name ="title"rows="1" cols="40"></textarea>
+                        </td>
                     </tr>
                     <tr>
-                        <td colspan="2">내용<input name="contents"  type="text" ></input></td>
+                        <td >내용
+                            <textarea name ="contents"rows="30" cols="100"></textarea>
+                        </td>
                     </tr>
                     <% }else{ %>
+                       
                     <tr>
-                        <td>이전 제목 : <%= info[0].title %></td>
-                        <td>제목<input name="title"  type="text" ></input></td>
+                        <td>제목
+                                <textarea name ="title"rows="1" cols="40"><%= info[0].title %></textarea>
+                        </td>
                     </tr>
+                   
                     <tr>
-                        <td>이전 내용 : <%= info[0].contents %></td>
-                        <td>내용<input name="contents"  type="text" ></input></td>
+                       
+                        <td>내용
+                                <textarea name ="contents"rows="30" cols="100"><%= info[0].contents %></textarea>
+                        </td>
                     </tr>
                     <% } %>
+                    <tr >
+                        <td>포스트 카테고리</td>
+                    </tr>
                     <tr>
-                        <td>포스트 카테고리 
-                        </td>
-                        <td>[
+                        <td >[
                             <% post_category.forEach(function(cate) { %>
                                 <span><%= cate.post_category_id %> :<%= cate.title %> &nbsp;&nbsp;</span>
                             <% }) %>
                         ]</td>
                     </tr>  
                     <tr>
-                        <td>책 카테고리 번호 입력&nbsp;</td>
+                            <td>포스트 번호 입력&nbsp;</td>
+                    </tr>
+                    <tr>
+                       
                         <td><input name="post_cate"  type="text" ></td></input>
+                    </tr>
+                    <tr >
+                            <td colspan="2">관심사 카테고리 </td>
+                    </tr>
+                    <tr>
+                       
+                        <td>[
+                            <% user_category.forEach(function(cate) { %>
+                                <span><%= cate.category_id %> :<%= cate.content %> &nbsp;&nbsp;</span>
+                            <% }) %>
+                        ]</td>
+                    </tr> 
+                    <tr>
+                        <td>관심사 카테고리 번호 입력</td>
+                    </tr>
+                    <tr>
+                        <td><input name="user_cate"  type="text" ></td></input>
+                    </tr>
+                    <tr>
+                        <td>태그 입력</td>
+                    </tr>
+                    <tr>
+                        <td><input name="tag"  type="text" ></td></input>
                     </tr>
 
 

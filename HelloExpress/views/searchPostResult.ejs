@@ -17,23 +17,26 @@
         </center>
     </div> 
     <hr />
-    <center>
-        <h2>구독 관리</h2>
-        <div class = "column">
-            <table>
-                <tr>
-                    <td><a href="http://localhost:3000/management/subscribe/history">구독내역 조회</a></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td><a href="http://localhost:3000/management/subscribe/autopay">자동결제 관리</a></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td></td>
-                </tr>
-            </table>
-        </div>
-</center>
+
+    <div>
+        <center>
+            <h2>검색 결과</h2>
+            <div class ="column">
+                    <table>
+                            <tr>
+                                <th>제목</th>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <% book_result.forEach(function(book_result) { %>
+                                        <tr><td><%= book_result.title %></td></tr>
+                                    <% }) %>
+                                </td>
+                        </tr>
+                    </table>
+            </div>
+        </center>
+    </div>
+
 </body>
 </html>

@@ -1,17 +1,17 @@
 var express = require('express');
 var router = express.Router();
 var mysql = require("mysql");
+var db_config = require('./db_config.json');
 
 var connection = mysql.createConnection({
   connectionLimit: 100,
-  host : 'dbdbdb.cibpms4ouvxz.us-east-2.rds.amazonaws.com',
+  host : db_config.host,
   port : 3306,
-  user: 'root',
-  password: 'qwer1234',
-  database: 'class',
+  user: db_config.user,
+  password: db_config.password,
+  database: db_config.database,
   multipleStatements: true,
 });
-
 
 var obj = {};
 var userID = -1;
@@ -111,7 +111,7 @@ router.get('/myinfo/set_phone', function(req, res, next) {
 
 router.post('/myinfo/set_phone', function(req, res, next) {
   var body = req.body;
-  sql = "UPDATE User SET PhoneNumber = '"+ body.phone +"' WHERE user_index = " + String(userID) ;
+  sql = "UPDATE User SET phoneNumber = '"+ body.phone +"' WHERE user_index = " + String(userID) ;
   connection.query(sql, function (err, result) {
     if (err) throw err;
     console.log(result.affectedRows + " record(s) updated");
@@ -251,29 +251,6 @@ router.post('/subscribe/deleteAlarm', function(req, res, next) {
   });
 });
 
-/*관리->계정관리->유저 관심 카테고리*/
-
-// router.get('/subscribe/interest_category', function(req, res, next) {
-//   userID = req.session.userID;
-//   sql = "SELECT t2.content, t2.category_id FROM \
-//         (SELECT * FROM User_Interest_Category WHERE user_index = ?) t1 \
-//         LEFT JOIN (SELECT * FROM Category) t2 \
-//         ON t1.category_id=t2.category_id;"+
-//         "SELECT * FROM Category";
-//   connection.query(sql,[userID],function(err, result, fields){
-//     console.log(result[1]);
-//     if(!result){
-//       res.render('alert', {message : '관심 카테고리가 설정되지 않았습니다'}); 
-//     }
-//     if(err){
-//       console.log(err);
-//     }
-//     obj = 
-//     {fav_cates:result[0],
-//     categories:result[1]};
-//     res.render('management/subscribe/interest_category', obj);               
-//   });
-// });
 
 router.post('/subscribe/addInterestCategory', function(req, res, next) {
   var content= req.body.add_cate;

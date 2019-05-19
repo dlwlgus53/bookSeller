@@ -1,2 +1,3 @@
 .DS_Store
 node_modules
+HelloExpress/routes/db_config.json

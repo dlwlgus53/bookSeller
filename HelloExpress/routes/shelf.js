@@ -1,14 +1,15 @@
 var express = require('express');
 var router = express.Router();
 var mysql = require("mysql");
+var db_config = require('./db_config.json');
 
 var connection = mysql.createConnection({
   connectionLimit: 100,
-  host : 'dbdbdb.cibpms4ouvxz.us-east-2.rds.amazonaws.com',
+  host : db_config.host,
   port : 3306,
-  user: 'root',
-  password: 'qwer1234',
-  database: 'class',
+  user: db_config.user,
+  password: db_config.password,
+  database: db_config.database,
   multipleStatements: true,
 });
 
@@ -46,7 +47,7 @@ router.get('/', function(req, res, next) {
      " SELECT COUNT (follower_id) as count FROM Subscribe WHERE " + "'" + ownerID + "' = follower_id;"+
     //[3]나의 post 정보 가져오기
       "SELECT *,t1.title AS c_title, Post.title AS p_title, Post.user_index FROM (SELECT * FROM Post_Category WHERE '" + ownerID + "' = user_index) t1\
-      LEFT JOIN Post\
+      JOIN Post\
       ON t1.post_category_id=Post.post_category_id;"+
       //[4]내가 구독하는 사람의 post 가져오기
       "SELECT  Post.post_id, Post.title, User.nickName, User.user_index FROM Subscribe INNER JOIN User ON Subscribe.user_index = User.user_index INNER JOIN Post ON Subscribe.user_index = Post.user_index WHERE Subscribe.follower_id = "+"'" +  ownerID+"';"+
@@ -56,8 +57,6 @@ router.get('/', function(req, res, next) {
       "SELECT COUNT (book_read_id) as count FROM Book_Read WHERE return_date is not NULL AND '" + ownerID + "' = user_index;"+
       //[7]인용문 수
       "SELECT COUNT (quotation_id) as count FROM Quotation WHERE '" + ownerID + "' = user_index;"+
-      //[8]내가 좋아한 책
-      //"SELECT * FROM Book INNER JOIN Love ON Love.book_id = Book.book_id WHERE '" + ownerID + "' = user_index AND  '" + 1 + "' = love_status;"
       //[8]대여중인 도서
       "SELECT * FROM Book_Read INNER JOIN Book ON Book_Read.book_id = Book.book_id  WHERE return_date is NULL AND '" + ownerID + "' = user_index;"+
       //[9]카테고리 수
@@ -112,12 +111,73 @@ router.get('/', function(req, res, next) {
           follower_n :result[15],
           me : {user_index : userID}
         };
-        console.log(obj);
+        // console.log(obj);
         res.render('shelf',obj);
       }
     })
   }
 });
+
+/* GET shelf/post page. */
+router.get('/post', function(req, res, next) {
+  //ownerID = req.session.ownerID;
+  var pid =  req.param("pid");
+  var uid =  req.param("uid");
+  sql = 
+  "SELECT * FROM User WHERE " + "'" + uid+ "' = user_index;" + 
+  "SELECT * FROM Post WHERE '" + pid + "' = post_id;"+
+  //[2]댓글 읽기
+  "SELECT t2.nickName, t1.content, t1.datetime\
+  FROM (SELECT * FROM Comment WHERE post_id='"+pid+"') t1\
+  LEFT JOIN (SELECT * FROM User) t2\
+  ON t1.user_index=t2.user_index;"+
+  //[3]관련 태그 보기
+  "SELECT t2.title AS post_title, t1.content AS tag\
+  FROM (SELECT * FROM Post_Tag WHERE post_id = '" +pid +"') t1\
+  LEFT JOIN (SELECT * FROM Post) t2\
+  ON t1.post_id = t2.post_id;";
+
+  connection.query(sql, function(err, result, fields){
+    if (err) throw err;
+    else {
+      console.log(result);
+      obj = {
+          writer : result[0],
+          post : result[1],
+          comments : result[2],
+          tags : result[3]}
+          console.log(result[3]);
+      res.render('shelf/post',obj);
+    }
+  });
+
+});
+
+/* SET comment . */
+router.post('/post', function(req, res, next) {
+  if(!req.session.userID) res.redirect('user/login');
+  else{
+    var body = req.body;
+    var userID = req.session.userID;//댓글 작성자
+    var pid =  req.param("pid");//post 작성자
+
+    sql = "INSERT INTO Comment (user_index, post_id, content, datetime)\
+    VALUES ('"+userID+"','"+ pid +"','"+ body.comment + "', NOW());";
+    
+
+    console.log(sql)
+    connection.query(sql, function(err, result, fields){
+      if (err) throw err;
+      else {
+        console.log(result.affectedRows);
+        res.redirect("back")
+      }
+    });
+
+  }
+  
+});
+
 
 
 
@@ -137,28 +197,6 @@ router.get('/post/delete', function(req, res, next) {
 
 });
 
-/* GET shelf/post/setpost */
-// router.get('/post/setpost', function(req, res, next) {
-//   //ownerID = req.session.ownerID;
-//   var pid =  req.param("pid");
-
-//   if(pid==-1){
-//     obj = {info : [{pid : -1}]}
-//     res.render('shelf/setpost', obj);
-//   }else{
-//     sql = "SELECT *  FROM Post WHERE '" + pid + "' = post_id;"
-//     connection.query(sql, function(err, result, fields){
-//       if (err) throw err;
-//       else {
-//       console.log(result)
-//         obj = {
-//           info : result}
-//           res.render('shelf/setpost', obj);
-//       }
-//     });
-
-//   }
-// });
 
 /* GET shelf/post/delete page. */
 router.get('/post/setpost', function(req, res, next) {
@@ -166,12 +204,16 @@ router.get('/post/setpost', function(req, res, next) {
   var pid =  req.param("pid");
 
   if(pid==-1){
-    sql = "SELECT * FROM Post_Category WHERE '" + ownerID + "' = user_index;";
+    sql = "SELECT * FROM Post_Category WHERE '" + ownerID + "' = user_index;"+
+    "SELECT * FROM Category WHERE '" + 3+ "' = type;";
+
     connection.query(sql, function(err, result, fields){
       if (err) throw err;
       else {
-    obj = {     info : [{post_id : -1}],
-          post_category : result}
+    obj = { info : [{post_id : -1}],
+          post_category : result[0],
+          user_category : result[1]
+        }
       
     res.render('shelf/setpost', obj);
       }
@@ -179,7 +221,8 @@ router.get('/post/setpost', function(req, res, next) {
 
   }else{
     sql = "SELECT *  FROM Post WHERE '" + pid + "' = post_id;"+
-    "SELECT * FROM Post_Category WHERE '" + ownerID + "' = user_index;";
+    "SELECT * FROM Post_Category WHERE '" + ownerID + "' = user_index;"+
+    "SELECT * FROM Category WHERE '" + 3+ "' = type;";
     console.log(sql);
     connection.query(sql, function(err, result, fields){
       if (err) throw err;
@@ -187,7 +230,8 @@ router.get('/post/setpost', function(req, res, next) {
      
         obj = {
           info : result[0],
-          post_category : result[1]}
+          post_category : result[1],
+          user_category : result[2]}
           
           console.log(obj);
           res.render('shelf/setpost', obj);
@@ -200,15 +244,61 @@ router.get('/post/setpost', function(req, res, next) {
 
 router.post('/post/setpost', function(req, res, next) {
   var body = req.body;
-
+ 
   var pid =  req.param("pid");
   if(pid==-1){
-    connection.query("INSERT INTO Post (user_index, title,contents, post_category_id) VALUES (?,?,?,?)", [
-      ownerID, body.title, body.contents, body.user_cate
-    ]);
-    res.redirect('/shelf?sid='+'-1');
-  }else{
-    sql = "UPDATE Post SET  post_category_id = '"+body.user_cate+"'+title = '" + body.title+"', contents = '"+ body.contents +"' WHERE '" + pid + "' = post_id;";
+  
+    sql =  "INSERT INTO Post  (user_index, title,contents, post_category_id, interest_category_id)\
+    VALUES('"+ownerID+"','"+ body.title+"','"+ body.contents+"','"+body.post_cate+"','"+body.user_cate+"');";
+    connection.beginTransaction(function(err){
+      if (err) {throw err;}
+      connection.query(sql, function (err, result) {
+      if(err){
+        console.error(err);
+        connection.rollback(function () {
+           console.error('rollback error');
+            throw err;
+      })
+    }else{
+        sql = "SELECT MAX(Post_id) AS pid FROM Post WHERE '" + ownerID + "' = user_index;";
+        connection.query(sql, function (err, result) {
+          if(err){
+            console.error(err);
+            connection.rollback(function () {
+               console.error('rollback error');
+                throw err;
+          })
+        }else{
+            console.log(result[0])
+            pid =result[0].pid;
+            console.log(pid);
+            sql = "INSERT INTO Post_Tag (post_id, content)  VALUES ('"+pid+"','"+body.tag+"');";
+            connection.query(sql, function (err, result) {
+              if(err){
+                console.error(err);
+                connection.rollback(function () {
+                   console.error('rollback error');
+                    throw err;
+              })
+            }else{
+                  console.log("update");
+                  res.redirect('/shelf?sid='+'-1');
+                }
+              });
+            }
+          });
+        };
+      })
+    })
+    }else{
+    var pid =  req.param("pid");
+    sql = "UPDATE Post SET post_category_id = \
+    '"+body.post_cate+"',title = '" + body.title+"'\
+     ,contents = '"+ body.contents +"' ,interest_category_id = '" + body.user_cate + "' \
+      WHERE '" + pid + "' = post_id;"+
+      "UPDATE Post_Tag SET content = '"+body.tag+"' WHERE '" + pid + "' = post_id;";
+
+    console.log(sql);
     connection.query(sql, function (err, result) {
       if (err) throw err;
       else{
@@ -287,13 +377,15 @@ router.get('/libManage/delete', function(req, res, next) {
 router.get('/libManage/libSet', function(req, res, next) {
   // = req.session.ownerID;
   var cname =  decodeURIComponent(req.param("cname"));
-  sql = "SELECT * FROM Bookshelf INNER JOIN Book ON Bookshelf.book_id = Book.book_id WHERE '" + cname + "' = bookshelf_title;";
+  sql = "SELECT * FROM Bookshelf INNER JOIN Book ON Bookshelf.book_id = Book.book_id WHERE '" + cname + "' = bookshelf_title;"+
+  "SELECT * FROM Book;";
       
   connection.query(sql, function(err, result, fields){
     if (err) throw err;
     else {
       obj ={
-        books : result
+        my_books : result[0],
+        books : result[1]
       };
       console.log(obj);
       res.render('shelf/library/libSet', obj);
@@ -313,7 +405,7 @@ router.post('/libManage', function(req, res, next) {
   console.log("new_name" + new_name);
 
 
-  res.redirect('/shelf/libManage');
+  
 
   sql = "DELETE FROM Bookshelf WHERE '" + ownerID + "' = user_index AND'" + cname + "' = bookshelf_title; ";
   ids.forEach(function(id) {
@@ -323,8 +415,10 @@ router.post('/libManage', function(req, res, next) {
   connection.query(sql, function(err, result, fields){
     if (err) throw err;
     else {
-      res.json(result);
+      res.redirect('/shelf/libManage');
     }
+  
+
   });
 });
 
@@ -333,7 +427,8 @@ router.get('/subscribe', function(req, res, next) {
   if(!req.session.userID) res.redirect('user/login');
   else{
     userID = req.session.userID;
-    sql = "INSERT INTO Subscribe (user_index,follower_id) VALUES ('"+ ownerID +"','"+ userID +"'); "
+    sql = "INSERT INTO Subscribe (user_index,follower_id) VALUES ('"+ ownerID +"','"+ userID +"');";
+
     connection.query(sql, function(err, result, fields){
       if (err) throw err;
       else {
@@ -364,64 +459,6 @@ router.get('/unsubscribe', function(req, res, next) {
   }
   
 });
-/* GET shelf/post page. */
-router.get('/post', function(req, res, next) {
-  //ownerID = req.session.ownerID;
-  var pid =  req.param("pid");
-  var uid =  req.param("uid");
-  sql = 
-  "SELECT * FROM User WHERE " + "'" + uid+ "' = user_index;" + 
-  "SELECT * FROM Post WHERE '" + pid + "' = post_id;"+
-  //[2]댓글 읽기
-  "SELECT t2.nickName, t1.content, t1.datetime\
-  FROM (SELECT * FROM Comment WHERE post_id='"+pid+"') t1\
-  LEFT JOIN (SELECT * FROM User) t2\
-  ON t1.user_index=t2.user_index;"+
-  //[3]관련 태그 보기
-  "SELECT t2.title AS post_title, t1.content AS tag\
-  FROM (SELECT * FROM Post_Tag WHERE post_id = '" +pid +"') t1\
-  LEFT JOIN (SELECT * FROM Post) t2\
-  ON t1.post_id = t2.post_id;";
-
-  connection.query(sql, function(err, result, fields){
-    if (err) throw err;
-    else {
-      console.log(result);
-      obj = {
-          writer : result[0],
-          post : result[1],
-          comments : result[2],
-          tags : result[3]}
-      res.render('shelf/post',obj);
-    }
-  });
-
-});
-
-/* SET comment . */
-router.post('/post', function(req, res, next) {
-  if(!req.session.userID) res.redirect('user/login');
-  else{
-    var body = req.body;
-    var userID = req.session.userID;//댓글 작성자
-    var pid =  req.param("pid");//post 작성자
-
-    sql = "INSERT INTO Comment (user_index, post_id, content, datetime)\
-    VALUES ('"+userID+"','"+ pid +"','"+ body.comment + "', NOW());";
-
-    console.log(sql)
-    connection.query(sql, function(err, result, fields){
-      if (err) throw err;
-      else {
-        console.log(result.affectedRows);
-        res.redirect("back")
-      }
-    });
-
-  }
-  
-});
-
 
 
 

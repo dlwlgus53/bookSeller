@@ -1,14 +1,15 @@
 var express = require('express');
 var router = express.Router();
 var mysql = require("mysql");
+var db_config = require('./db_config.json');
 
 var connection = mysql.createConnection({
   connectionLimit: 100,
-  host : 'dbdbdb.cibpms4ouvxz.us-east-2.rds.amazonaws.com',
+  host : db_config.host,
   port : 3306,
-  user: 'root',
-  password: 'qwer1234',
-  database: 'class',
+  user: db_config.user,
+  password: db_config.password,
+  database: db_config.database,
   multipleStatements: true,
 });
 
@@ -65,18 +66,35 @@ router.post('/user/login', function(req, res, next) {
           
           // console.log(result[1].to_date);
           //정기결제 설정 && 결제일 지났으면 결제 페이지로 이동
-          if(result[0][0].auto==1 && result[1][0].to_date <= today){
-            console.log("정기결제");
-            sql = "INSERT INTO Buy (user_index, from_date, to_date) VALUES ("+userID+", NOW(), date_add(NOW(), INTERVAL 1 MONTH))";
-            connection.query(sql, function(err, result, fields){
-              if (err){
-                console.log("쿼리문에 오류가 있습니다.");
-                console.log(err);
-              }
-              else{
-                return res.render('alert', {message : '정기권이 자동 결제 되었습니다.'});
-              }
-            });
+          if(result[1][0].to_date <= today){
+            if(result[0][0].auto!=0){
+              console.log("정기결제");
+              sql = "INSERT INTO Buy (user_index, from_date, to_date) VALUES ("+userID+", NOW(), date_add(NOW(), INTERVAL 1 MONTH));";
+                  // + "UPDATE User SET is_premium = 0 WHERE user_index="+userID;
+              connection.query(sql, function(err, result, fields){
+                if (err){
+                  console.log("쿼리문에 오류가 있습니다.");
+                  console.log(err);
+                }
+                else{
+                  return res.render('alert', {message : '정기권이 자동 결제 되었습니다.'});
+                }
+              });
+            }
+            // 기한 지남 && 정기결제 설정 x -> is_premium 0으로 설정
+            else{
+              console.log("프리미엄 취소");
+              sql = "UPDATE User SET is_premium = 0 WHERE user_index="+userID;
+              connection.query(sql, function(err, result, fields){
+                if (err){
+                  console.log("쿼리문에 오류가 있습니다.");
+                  console.log(err);
+                }
+                else{
+                  return res.render('alert', {message : '결제가 되지 않아 책을 빌리실 수 없습니다. 관리-구독관리-자동결제 설정을 체크하고 재로그인 하면 결제 됩니다.'});
+                }
+              });
+            }
             
           }
 
@@ -135,25 +153,25 @@ router.get('/', function(req, res, next) {
         LEFT JOIN (SELECT * FROM User) t2 \
         ON t1.user_index = t2.user_index;"
     // [6] column 6 - 월간 차트
-    + "SELECT t1.num, t2.title, t2.writer, t2.publisher \
+    + "SELECT t1.num, t2.book_id, t2.title, t2.writer, t2.publisher \
         FROM ( \
           SELECT book_id, count(*) AS num \
             FROM Book_Read \
             WHERE DATE(borrow_date\
           ) \
-        BETWEEN DATE_ADD(NOW(),INTERVAL -5 MONTH ) AND NOW() \
+        BETWEEN DATE_ADD(NOW(),INTERVAL -1 MONTH ) AND NOW() \
         GROUP BY book_id \
         ORDER BY count(*) DESC LIMIT 10) t1 \
         NATURAL JOIN (SELECT * FROM Book) t2 \
         WHERE t1.book_id = t2.book_id;"
     // [7] column 6 - 주간 차트
-    + "SELECT t1.num, t2.title, t2.writer, t2.publisher \
+    + "SELECT t1.num, t2.book_id, t2.title, t2.writer, t2.publisher \
         FROM ( \
           SELECT book_id, count(*) AS num \
             FROM Book_Read \
             WHERE DATE(borrow_date\
           ) \
-        BETWEEN DATE_ADD(NOW(),INTERVAL -5 WEEK ) AND NOW() \
+        BETWEEN DATE_ADD(NOW(),INTERVAL -1 WEEK ) AND NOW() \
         GROUP BY book_id \
         ORDER BY count(*) DESC LIMIT 10) t1 \
         NATURAL JOIN (SELECT * FROM Book) t2 \
@@ -204,19 +222,55 @@ router.post('/', function(req, res, next){
 
 /* GET search page. */
 router.get('/search', function(req, res, next) {
-  var q =  req.param("q");
-  if (typeof q == "undefined") {
+  var info =  req.param("info");
+  var tag = req.param("tag");
+  var post = req.param("post");
+  var post_tag = req.param("post_tag");
+
+  if (typeof info == "undefined" && typeof tag == "undefined" && typeof post == "undefined" && typeof post_tag == "undefined") {
     res.render('search');
   }
-  else{
-    sql = "SELECT * FROM Book WHERE (title LIKE '%" + q +"%') OR (writer LIKE '%" + q +"%') OR (publisher LIKE '%" + q +"%');";
-    connection.query(sql, function(err, result, fields){
-      console.log(result);
-      obj={
-        book_result: result
-      };
-      res.render('searchResult', obj);
-    });
+  else if(typeof info != "undefined"){
+      sql = "SELECT * FROM Book WHERE (title LIKE '%" + info + "%') OR (writer LIKE '%" + info + "%') OR (publisher LIKE '%" + info + "%');";
+      connection.query(sql, function (err, result, fields) {
+        console.log(result);
+        obj = {
+          book_result: result
+        };
+        res.render('searchResult', obj);
+      });
+  }
+  else if(typeof tag != "undefined"){
+    sql = "SELECT * FROM Book RIGHT JOIN (SELECT book_id FROM Book_Tag WHERE is_deleted=0 AND content LIKE '%"+tag+"%')t2\
+      ON Book.book_id = t2.book_id;";
+      connection.query(sql, function (err, result, fields) {
+        console.log(result);
+        obj = {
+          book_result: result
+        };
+        res.render('searchResult', obj);
+      });
+  }
+  else if(typeof post != "undefined"){
+    sql = "SELECT * FROM Post WHERE (title LIKE '%" + post + "%');";
+      connection.query(sql, function (err, result, fields) {
+        console.log(result);
+        obj = {
+          book_result: result
+        };
+        res.render('searchPostResult', obj);
+      });
+  }
+  else if(typeof post_tag != "undefined"){
+    sql = "SELECT * FROM Post RIGHT JOIN (SELECT post_id FROM Post_Tag WHERE content LIKE '%"+post_tag+"%')t2\
+    ON Post.post_id = t2.post_id;";
+      connection.query(sql, function (err, result, fields) {
+        console.log(result);
+        obj = {
+          book_result: result
+        };
+        res.render('searchPostResult', obj);
+      });
   }
 
 });
@@ -233,35 +287,48 @@ router.post('/user/addUser', function(req, res, next) {
   var body = req.body;
   var sql;
   sql =  "SELECT COUNT (user_index) as count FROM User WHERE email = '" + body.email + "'";
-  connection.query(sql,function(err, result, fields){
+  connection.beginTransaction(function(err) {
+    if (err) {throw err;}
+    connection.query(sql,function(err, result, fields){
     if (err) throw err;
-
     else if(result && result[0].count ==1){
       res.render('alert', {message : 'same email'}); 
     }
     else{
-      connection.query("INSERT INTO User (email, Password, Name, Sns) VALUES (?, ?, ?, ?)", [
-        body.email, body.password, body.name, body.sns
-      ]);
-      connection.query("SELECT user_index FROM User WHERE " + "'" + body.email + "' = email",
-      function(err, result, fields){
-        if (err) throw err;
-        else{
-          userID = result[0].user_index;
-          var libraryName = "유명한 여행가의 서재_" + String(userID);
-          var nickName = "유명한 여행가_"+ String(userID);
-          sql = "UPDATE User SET libraryName = '" + libraryName+"', NickName = '"+ nickName +"' WHERE user_index = " + String(userID) ;
-          connection.query(sql, function (err, result) {
-            if (err) throw err;
-            console.log(result.affectedRows + " record(s) updated");
-          });
-          console.log(userID);
-          res.redirect("/");
-        }
+      // connection.query("INSERT INTO User (email, Password, Name, Sns) VALUES (?, ?, ?, ?)", [
+      //   body.email, body.password, body.name, body.sns
+      // ])
+      sql="INSERT INTO User  (email, Password, Name, Sns) \
+      VALUES('"+ body.email +"','"+ body.password +"','"+body.name+"','"+body.sns+"');"
 
+      connection.query(sql, function(err, result, fields){
+        if(err){
+          console.error(err);
+          connection.rollback(function () {
+             console.error('rollback error');
+              throw err;
+        })
+      }else{
+        connection.query("SELECT user_index FROM User WHERE " + "'" + body.email + "' = email",
+        function(err, result, fields){
+          if (err) throw err;
+          else{
+            userID = result[0].user_index;
+            var libraryName = "유명한 여행가의 서재_" + String(userID);
+            var nickName = "유명한 여행가_"+ String(userID);
+            sql = "UPDATE User SET libraryName = '" + libraryName+"', NickName = '"+ nickName +"' WHERE user_index = " + String(userID) ;
+            connection.query(sql, function (err, result) {
+              if (err) throw err;
+              console.log(result.affectedRows + " record(s) updated");
+            });
+            console.log(userID);
+            res.redirect("/");
+          }
+        });
+      }
       });
-
     };
+    });
   });
 });
 
@@ -296,115 +363,7 @@ router.post('/create', function(req, res, next) {
   });
 });
 
-// /*관리->계정관리*/
-// router.get('/management/myinfo', function(req, res, next) {
-//   sql = "SELECT * FROM User WHERE " + "'" + userID + "' = user_index";
-//   connection.query(sql,function(err, result, fields){
-//     if (err) throw err;
-//     else{
-//       var string=JSON.stringify(result);
-//       var info =  JSON.parse(string);
-//       obj = {user : info}
-//       console.log(obj);
-//       res.render('management/myinfo', obj);  
-//     }
-      
-//   });
-// });
 
-// /*관리->계정관리->필명 수정*/
-// router.get('/management/myinfo/set_writer', function(req, res, next) {
-//   res.render('management/myinfo/set_writer');
-// });
-// router.post('/management/myinfo/set_writer', function(req, res, next) {
-//   var body = req.body;
-//   sql = "UPDATE User SET NickName = '"+ body.name +"' WHERE user_index = " + String(userID) ;
-//   connection.query(sql, function (err, result) {
-//     if (err) throw err;
-//     console.log(result.affectedRows + " record(s) updated");
-//   });
-//   res.redirect("/management/myinfo");
-// });
-
-
-// /*관리->계정관리->서재명 수정*/
-// router.get('/management/myinfo/set_shelf', function(req, res, next) {
-//   res.render('management/myinfo/set_shelf');
-// });
-// router.post('/management/myinfo/set_shelf', function(req, res, next) {
-//   var body = req.body;
-//   sql = "UPDATE User SET libraryName = '"+ body.name +"' WHERE user_index = " + String(userID) ;
-//   connection.query(sql, function (err, result) {
-//     if (err) throw err;
-//     console.log(result.affectedRows + " record(s) updated");
-//   });
-//   res.redirect("/management/myinfo");
-// });
-
-// /*관리->계정관리->서재설명 수정*/
-// router.get('/management/myinfo/set_description', function(req, res, next) {
-//   res.render('management/myinfo/set_description');
-// });
-// router.post('/management/myinfo/set_description', function(req, res, next) {
-//   var body = req.body;
-//   sql = "UPDATE User SET libraryDescription = '"+ body.description +"' WHERE user_index = " + String(userID) ;
-//   connection.query(sql, function (err, result) {
-//     if (err) throw err;
-//     console.log(result.affectedRows + " record(s) updated");
-//   });
-//   res.redirect("/management/myinfo");
-// });
-
-// /*관리->계정관리->핸드폰 번호 수정*/
-// router.get('/management/myinfo/set_phone', function(req, res, next) {
-//   res.render('management/myinfo/set_phone');
-// });
-
-// router.post('/management/myinfo/set_phone', function(req, res, next) {
-//   var body = req.body;
-//   sql = "UPDATE User SET PhoneNumber = '"+ body.phone +"' WHERE user_index = " + String(userID) ;
-//   connection.query(sql, function (err, result) {
-//     if (err) throw err;
-//     console.log(result.affectedRows + " record(s) updated");
-//   });
-//   res.redirect("/management/myinfo");
-// });
-
-// /*관리->계정관리->이메일 수정*/
-// router.get('/management/myinfo/set_email', function(req, res, next) {
-//   res.render('management/myinfo/set_email');
-// });
-
-// router.post('/management/myinfo/set_email', function(req, res, next) {
-//   var body = req.body;
-//   sql = "UPDATE User SET email = '"+ body.email +"' WHERE user_index = " + String(userID) ;
-//   connection.query(sql, function (err, result) {
-//     if (err) throw err;
-//     console.log(result.affectedRows + " record(s) updated");
-//   });
-//   res.redirect("/management/myinfo");
-// });
-
-
-// /*관리->구독관리*/
-// router.get('/management/subscribe', function(req, res, next) {
-//   res.render('management/subscribe');
-// });
-// // SELECT COUNT (*) as count FROM Buy;
-// /*관리->구독관리->구독내역 조회*/
-// router.get('/management/subscribe/history', function(req, res, next) {
-//   console.log(userID)
-//   sql = "SELECT * FROM Buy WHERE user_index = " + String(userID) + ";SELECT COUNT (*) as count FROM Buy WHERE user_index = " + String(userID) +";" ;
-//   connection.query(sql,function(err, result, fields){
-//     if(!result){
-//       res.render('alert', {message : 'no history'}); 
-//     }
-//   obj = 
-//   {print: result};
-//   console.log(result);
-//   res.render('management/subscribe/history', obj);               
-//   });
-// });
 
 /*GET event page*/
 router.get('/event', function(req, res, next) {
@@ -468,73 +427,52 @@ router.post('/event/deleteComment', function(req, res, next){
   });
   res.redirect("/event?eid="+eid);
 });
-// /*관리->구독관리->구독취소*/
-// router.get('/management/subscribe/autopay', function(req, res, next) {
-//   var sql = "SELECT MAX (Index) FROM Buy;";
-//   connection.query(sql, function(err, result, fields){
-//     if (err) throw err;
-//     console.log(result);
-//     if(!result){
-//       res.render('alert', {message : 'no history'}); 
-//     }
-//     else{   
-//     obj = {print: result};
-//     res.render('management/subscribe/autopay', obj);               
+
+/* 회원가입 */
+router.get('/user/addUser', function(req, res, next) {
+  res.render('user/addUser');
+});
+
+router.post('/user/addUser', function(req, res, next) {
+  var body = req.body;
+  var sql;
+  sql =  "SELECT COUNT (User_index) as count FROM User WHERE Email = '" + body.email + "'";
+  connection.query(sql,function(err, result, fields){
+    if (err) throw err;
 
 
-//     }
+    else if(result && result[0].count ==1){
+      res.render('alert', {message : 'same email'}); 
+    }
+    else{
+      connection.query("INSERT INTO User (Email, Password, Name, Sns) VALUES (?, ?, ?, ?)", [
+        body.email, body.password, body.name, body.sns
+      ]);
+      connection.query("SELECT User_index FROM User WHERE " + "'" + body.email + "' = Email",
+      function(err, result, fields){
+        if (err) throw err;
+        else{
+          userID = result[0].User_index;
+          var libraryName = "유명한 여행가의 서재_" + String(userID);
+          var nickName = "유명한 여행가_"+ String(userID);
+          sql = "UPDATE User SET LibraryName = '" + libraryName+"', NickName = '"+ nickName +"' WHERE User_index = " + String(userID) ;
+          connection.query(sql, function (err, result) {
+            if (err) throw err;
+            console.log(result.affectedRows + " record(s) updated");
+          });
+          console.log(userID);
+          res.redirect("/");
+        }
 
-//   });
-// });
+      });
 
-//로그인 확인 후 1.ejs 렌더링
-// router.get('/', function(req, res, next) {
-//   // userID = req.session.userID;
-//   if(!userID) res.redirect('user/login');
-//   res.render('management/hanna');
-// });
-
-//알람 - 유저에게 알람 보내기
-// router.get('/management/hanna/alarm_set', function(req, res, next) {
-//   console.log(req);
-//   res.render('management/hanna/alarm_set');
-// });
-
-// router.post('/management/hanna/alarm_set', function(req, res, next) {
-// var body = req.body;
-// sql = "INSERT INTO Alarm (user_index, content, datetime) VALUES("+body.user+", '"+body.content+"', NOW());";
-// connection.query(sql, function (err, result) {
-//   if (err) throw err;
-//   console.log(result.affectedRows + " record(s) updated");
-// });
-// res.redirect('/management/hanna');
-// });
-
-//알람 - 유저의 알람 보기
-// router.get('/management/hanna/alarm', function(req, res, next) {
-//   sql = "SELECT * FROM Alarm WHERE " + "'" + userID + "' = user_index";
-//   connection.query(sql,function(err, result, fields){
-//     if (err) throw err;
-//     if (!result) res.render('alert', {message : 'no alarm'});
-//     else{
-//       obj = {print : result};
-//       console.log(obj);
-//       res.render('management/hanna/alarm', obj);  
-//     }
-//   });
-// });
+    };
+  });
+});
 
 
-// router.get('/management/hanna/alarm_delete', function(req, res, next) {
-//   var aid =  req.param("aid");
-//   sql = "DELETE FROM Alarm WHERE '" + aid + "' = alarm_id;"
-//   connection.query(sql, function(err, result, fields){
-//     if (err) throw err;
-//     else {
-//       res.redirect('alarm');
-//     }
-//   });
-// });
+
+
 
 
 router.get('/management/hanna/interest_set', function(req, res, next) {

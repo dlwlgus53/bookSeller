@@ -20,18 +20,43 @@
     <hr />
     <div>
         <center>
-            <h2>서재관리</h2>
+            <h2>책장관리</h2>
             <div class ="column">
-                <% name = books[0].bookshelf_title.replace(/ /g, '+'); %>
+                <% name = my_books[0].bookshelf_title.replace(/ /g, '+'); %>
                 <form action="/shelf/libManage?cname=<%=name%>" method="POST">
                     <table>
                         <tr>
-                            <td >서재이름 : <textarea name="bookshelf_title"><%= books[0].bookshelf_title %></textarea></td>
+                            <td >책장이름 </td>
+                            <td colspan="2">
+                                <textarea name="bookshelf_title"><%= my_books[0].bookshelf_title %></textarea>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td > 선택 </td>
+                            <td> 제목 </td>
+                            <td> 작가 </td>
+
                         </tr>
                         <% books.forEach(function(book) { %>
-                            <tr>  
-                                <input type="checkbox" name="bookid" value=<%=book.book_id %> checked> 책이름 <%=book.title%> 작가 <%=book.writer %> <br>
-                            </tr>                                   
+                            <% has =0 %>
+                            <% my_books.forEach(function(mybook){ %>
+                                <% if(mybook.book_id == book.book_id){ %>
+                                    <% has = 1 %>
+                                <% } %>
+                            <% }) %>
+                            <% if(has ==0){ %>
+                                <tr> 
+                                    <td><input type="checkbox" name="bookid" value=<%=book.book_id %>> </td>
+                                    <td><%=book.title%></td>
+                                     <td><%=book.writer %> </td>
+                                </tr> 
+                            <% }else{ %>   
+                                <tr>  
+                                    <td><input type="checkbox" name="bookid" value=<%=book.book_id %> checked> </td>
+                                    <td><%=book.title%></td>
+                                    <td><%=book.writer %> </td>
+                                </tr>
+                            <% } %>
                         <% }) %>
                     </table>
                     <input type="submit" value="수정하기">
