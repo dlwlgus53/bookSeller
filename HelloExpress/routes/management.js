@@ -252,7 +252,6 @@ router.post('/subscribe/deleteAlarm', function(req, res, next) {
 });
 
 
-/*관리->구독관리->alarm 삭제*/
 router.post('/subscribe/addInterestCategory', function(req, res, next) {
   var content= req.body.add_cate;
   userID = req.session.userID;

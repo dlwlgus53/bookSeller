@@ -46,10 +46,8 @@ body {
 </style>
 </head>
 <body>
-
-<h2>ALARM</h2>
 <div class="header">
-  <h5>Alarm 확인</h5>
+  <h5> 유저의 Alarm 확인</h5>
 </div>
 
 <div class="row">
@@ -77,13 +75,13 @@ body {
 </div>
 </div>
 <div class="header">
-        <h5>Alarm 추가</h5>
+        <h5>Alarm 추가 - 관리자 </h5>
       </div>
       
       <div class="row">
             <div class="column" style="background-color: #fff5e6; width:100px;">
             <form action="http://localhost:3000/management/subscribe/addAlarm" method="POST">
-                <div class ="column" style="width:900px;">
+                <div class ="column" style="width:900px; text-align:center">
                     <table>
                         <div class = "tag">
                             user_index : <input type="text" name="alarm_uid" placeholder="user_index " style="width:100px; padding:5px"><br>
@@ -96,7 +94,7 @@ body {
       </div>
       </div>
 <div class="header">
-<h5>Alarm 삭제</h5>
+<h5>모든 Alarm 보기 - 관리자 </h5>
 </div>
 <form action="http://localhost:3000/management/subscribe/deleteAlarm" method="POST">
 <div class="row">

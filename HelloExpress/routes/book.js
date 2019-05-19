@@ -115,8 +115,8 @@ router.post('/delTag', function(req, res, next) {
   userID = req.session.userID;
   bookID = req.param("bid");
   var del_tagID = req.body.delTag;
-  sql = "UPDATE Book_Tag SET is_deleted=1 WHERE (book_tag_id="+String(del_tagID)+" AND user_index="+String(userID)+");"+
-  "UPDATE Love SET love_status = 0 WHERE (book_tag_id="+String(del_tagID)+" AND user_index="+String(userID)+");";
+  sql = "UPDATE Book_Tag SET is_deleted=1 WHERE (book_tag_id="+String(del_tagID)+" AND user_index="+String(userID)+");";
+ // "UPDATE Love SET love_status = 0 WHERE (book_tag_id="+String(del_tagID)+" AND user_index="+String(userID)+");";
   connection.query(sql, function (err, result) {
     console.log(err);
     console.log(result);
@@ -213,13 +213,11 @@ router.post('/bookLove', function(req, res, next) {
     else if( result.length > 0 && result ){
       if( result[0].love_status == 1){ // 좋아요 취소
         console.log("좋아요 취소 toggle");
-        sql = "UPDATE Love SET love_status = 0 WHERE (type='book' AND user_index = "+String(userID)+" AND book_id = "+String(bookID)+");\
-        UPDATE Book Set like_count=like_count - 1 WHERE book_id = "+String(bookID);
+        sql = "UPDATE Love SET love_status = 0 WHERE (type='book' AND user_index = "+String(userID)+" AND book_id = "+String(bookID)+");";
       }
         else{ // 좋아요  
         console.log("좋아요 toggle");
-        sql = "UPDATE Love SET love_status = 1 WHERE (type='book' AND user_index = "+String(userID)+" AND book_id = "+String(bookID)+");\
-        UPDATE Book Set like_count=like_count + 1 WHERE book_id = "+String(bookID);
+        sql = "UPDATE Love SET love_status = 1 WHERE (type='book' AND user_index = "+String(userID)+" AND book_id = "+String(bookID)+");";
       }
         connection.query(sql,
       function(err, result, fields){
@@ -229,8 +227,7 @@ router.post('/bookLove', function(req, res, next) {
     }
     else{
       console.log("좋아요 생성");
-      sql = "INSERT INTO Love (`type`, `user_index`, `book_id`) VALUES ('book', "+String(userID)+", "+String(bookID)+");\
-      UPDATE Book Set like_count = like_count + 1 WHERE book_id = "+String(bookID);
+      sql = "INSERT INTO Love (`type`, `user_index`, `book_id`) VALUES ('book', "+String(userID)+", "+String(bookID)+");";
       connection.query(sql,
       function(err, result, fields){
         res.redirect("/book?bid="+String(bookID));
@@ -263,8 +260,7 @@ router.post('/bookSubscribe', function(req, res, next) {
     }
     else{
       query="INSERT INTO Book_Read (book_id, user_index, borrow_date, return_date) \
-      VALUES(?,?,now(),DATE_ADD(NOW(), INTERVAL 31 DAY));\
-      UPDATE Book Set borrow_count = borrow_count + 1 WHERE book_id =?";
+      VALUES(?,?,now(),DATE_ADD(NOW(), INTERVAL 31 DAY));";
       connection.query(query,[bookID, userID, bookID],function(err, result, fields){
         if(err){
           console.log("book subscribe 추가에 에러");
