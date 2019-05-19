@@ -56,8 +56,6 @@ router.get('/', function(req, res, next) {
       "SELECT COUNT (book_read_id) as count FROM Book_Read WHERE return_date is not NULL AND '" + ownerID + "' = user_index;"+
       //[7]인용문 수
       "SELECT COUNT (quotation_id) as count FROM Quotation WHERE '" + ownerID + "' = user_index;"+
-      //[8]내가 좋아한 책
-      //"SELECT * FROM Book INNER JOIN Love ON Love.book_id = Book.book_id WHERE '" + ownerID + "' = user_index AND  '" + 1 + "' = love_status;"
       //[8]대여중인 도서
       "SELECT * FROM Book_Read INNER JOIN Book ON Book_Read.book_id = Book.book_id  WHERE return_date is NULL AND '" + ownerID + "' = user_index;"+
       //[9]카테고리 수
@@ -118,6 +116,67 @@ router.get('/', function(req, res, next) {
     })
   }
 });
+
+/* GET shelf/post page. */
+router.get('/post', function(req, res, next) {
+  //ownerID = req.session.ownerID;
+  var pid =  req.param("pid");
+  var uid =  req.param("uid");
+  sql = 
+  "SELECT * FROM User WHERE " + "'" + uid+ "' = user_index;" + 
+  "SELECT * FROM Post WHERE '" + pid + "' = post_id;"+
+  //[2]댓글 읽기
+  "SELECT t2.nickName, t1.content, t1.datetime\
+  FROM (SELECT * FROM Comment WHERE post_id='"+pid+"') t1\
+  LEFT JOIN (SELECT * FROM User) t2\
+  ON t1.user_index=t2.user_index;"+
+  //[3]관련 태그 보기
+  "SELECT t2.title AS post_title, t1.content AS tag\
+  FROM (SELECT * FROM Post_Tag WHERE post_id = '" +pid +"') t1\
+  LEFT JOIN (SELECT * FROM Post) t2\
+  ON t1.post_id = t2.post_id;";
+
+  connection.query(sql, function(err, result, fields){
+    if (err) throw err;
+    else {
+      console.log(result);
+      obj = {
+          writer : result[0],
+          post : result[1],
+          comments : result[2],
+          tags : result[3]}
+          console.log(result[3]);
+      res.render('shelf/post',obj);
+    }
+  });
+
+});
+
+/* SET comment . */
+router.post('/post', function(req, res, next) {
+  if(!req.session.userID) res.redirect('user/login');
+  else{
+    var body = req.body;
+    var userID = req.session.userID;//댓글 작성자
+    var pid =  req.param("pid");//post 작성자
+
+    sql = "INSERT INTO Comment (user_index, post_id, content, datetime)\
+    VALUES ('"+userID+"','"+ pid +"','"+ body.comment + "', NOW());";
+    
+
+    console.log(sql)
+    connection.query(sql, function(err, result, fields){
+      if (err) throw err;
+      else {
+        console.log(result.affectedRows);
+        res.redirect("back")
+      }
+    });
+
+  }
+  
+});
+
 
 
 
@@ -184,19 +243,60 @@ router.get('/post/setpost', function(req, res, next) {
 
 router.post('/post/setpost', function(req, res, next) {
   var body = req.body;
-
+ 
   var pid =  req.param("pid");
   if(pid==-1){
-    connection.query("INSERT INTO Post (user_index, title,contents, post_category_id, interest_category_id) VALUES (?,?,?,?,?)", [
-      ownerID, body.title, body.contents, body.post_cate, body.user_cate
-    ]);
-    console.log("update");
-    res.redirect('/shelf?sid='+'-1');
-  }else{
-    sql = "UPDATE Post SET  post_category_id = \
-    '"+body.post_cate+"'+title = '" + body.title+"'\
-     contents = '"+ body.contents +"' interest_category_id = '" + body.user_cate + "' \
-      WHERE '" + pid + "' = post_id;";
+  
+    sql =  "INSERT INTO Post  (user_index, title,contents, post_category_id, interest_category_id)\
+    VALUES('"+ownerID+"','"+ body.title+"','"+ body.contents+"','"+body.post_cate+"','"+body.user_cate+"');";
+    connection.beginTransaction(function(err){
+      if (err) {throw err;}
+      connection.query(sql, function (err, result) {
+      if(err){
+        console.error(err);
+        connection.rollback(function () {
+           console.error('rollback error');
+            throw err;
+      })
+    }else{
+        sql = "SELECT MAX(Post_id) AS pid FROM Post WHERE '" + ownerID + "' = user_index;";
+        connection.query(sql, function (err, result) {
+          if(err){
+            console.error(err);
+            connection.rollback(function () {
+               console.error('rollback error');
+                throw err;
+          })
+        }else{
+            console.log(result[0])
+            pid =result[0].pid;
+            console.log(pid);
+            sql = "INSERT INTO Post_Tag (post_id, content)  VALUES ('"+pid+"','"+body.tag+"');";
+            connection.query(sql, function (err, result) {
+              if(err){
+                console.error(err);
+                connection.rollback(function () {
+                   console.error('rollback error');
+                    throw err;
+              })
+            }else{
+                  console.log("update");
+                  res.redirect('/shelf?sid='+'-1');
+                }
+              });
+            }
+          });
+        };
+      })
+    })
+    }else{
+    var pid =  req.param("pid");
+    sql = "UPDATE Post SET post_category_id = \
+    '"+body.post_cate+"',title = '" + body.title+"'\
+     ,contents = '"+ body.contents +"' ,interest_category_id = '" + body.user_cate + "' \
+      WHERE '" + pid + "' = post_id;"+
+      "UPDATE Post_Tag SET content = '"+body.tag+"' WHERE '" + pid + "' = post_id;";
+
     console.log(sql);
     connection.query(sql, function (err, result) {
       if (err) throw err;
@@ -358,64 +458,6 @@ router.get('/unsubscribe', function(req, res, next) {
   }
   
 });
-/* GET shelf/post page. */
-router.get('/post', function(req, res, next) {
-  //ownerID = req.session.ownerID;
-  var pid =  req.param("pid");
-  var uid =  req.param("uid");
-  sql = 
-  "SELECT * FROM User WHERE " + "'" + uid+ "' = user_index;" + 
-  "SELECT * FROM Post WHERE '" + pid + "' = post_id;"+
-  //[2]댓글 읽기
-  "SELECT t2.nickName, t1.content, t1.datetime\
-  FROM (SELECT * FROM Comment WHERE post_id='"+pid+"') t1\
-  LEFT JOIN (SELECT * FROM User) t2\
-  ON t1.user_index=t2.user_index;"+
-  //[3]관련 태그 보기
-  "SELECT t2.title AS post_title, t1.content AS tag\
-  FROM (SELECT * FROM Post_Tag WHERE post_id = '" +pid +"') t1\
-  LEFT JOIN (SELECT * FROM Post) t2\
-  ON t1.post_id = t2.post_id;";
-
-  connection.query(sql, function(err, result, fields){
-    if (err) throw err;
-    else {
-      console.log(result);
-      obj = {
-          writer : result[0],
-          post : result[1],
-          comments : result[2],
-          tags : result[3]}
-      res.render('shelf/post',obj);
-    }
-  });
-
-});
-
-/* SET comment . */
-router.post('/post', function(req, res, next) {
-  if(!req.session.userID) res.redirect('user/login');
-  else{
-    var body = req.body;
-    var userID = req.session.userID;//댓글 작성자
-    var pid =  req.param("pid");//post 작성자
-
-    sql = "INSERT INTO Comment (user_index, post_id, content, datetime)\
-    VALUES ('"+userID+"','"+ pid +"','"+ body.comment + "', NOW());";
-
-    console.log(sql)
-    connection.query(sql, function(err, result, fields){
-      if (err) throw err;
-      else {
-        console.log(result.affectedRows);
-        res.redirect("back")
-      }
-    });
-
-  }
-  
-});
-
 
 
 
