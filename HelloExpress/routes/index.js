@@ -68,8 +68,8 @@ router.post('/user/login', function(req, res, next) {
           if(result[1][0].to_date <= today){
             if(result[0][0].auto!=0){
               console.log("정기결제");
-              sql = "INSERT INTO Buy (user_index, from_date, to_date) VALUES ("+userID+", NOW(), date_add(NOW(), INTERVAL 1 MONTH));"
-                  + "UPDATE User SET is_premium = 0 WHERE user_index="+userID;
+              sql = "INSERT INTO Buy (user_index, from_date, to_date) VALUES ("+userID+", NOW(), date_add(NOW(), INTERVAL 1 MONTH));";
+                  // + "UPDATE User SET is_premium = 0 WHERE user_index="+userID;
               connection.query(sql, function(err, result, fields){
                 if (err){
                   console.log("쿼리문에 오류가 있습니다.");
@@ -223,10 +223,13 @@ router.post('/', function(req, res, next){
 router.get('/search', function(req, res, next) {
   var info =  req.param("info");
   var tag = req.param("tag");
-  if (typeof info == "undefined" && typeof tag == "undefined") {
+  var post = req.param("post");
+  var post_tag = req.param("post_tag");
+
+  if (typeof info == "undefined" && typeof tag == "undefined" && typeof post == "undefined" && typeof post_tag == "undefined") {
     res.render('search');
   }
-  else if(typeof tag == "undefined"){
+  else if(typeof info != "undefined"){
       sql = "SELECT * FROM Book WHERE (title LIKE '%" + info + "%') OR (writer LIKE '%" + info + "%') OR (publisher LIKE '%" + info + "%');";
       connection.query(sql, function (err, result, fields) {
         console.log(result);
@@ -236,7 +239,7 @@ router.get('/search', function(req, res, next) {
         res.render('searchResult', obj);
       });
   }
-  else{
+  else if(typeof tag != "undefined"){
     sql = "SELECT * FROM Book RIGHT JOIN (SELECT book_id FROM Book_Tag WHERE is_deleted=0 AND content LIKE '%"+tag+"%')t2\
       ON Book.book_id = t2.book_id;";
       connection.query(sql, function (err, result, fields) {
@@ -245,6 +248,27 @@ router.get('/search', function(req, res, next) {
           book_result: result
         };
         res.render('searchResult', obj);
+      });
+  }
+  else if(typeof post != "undefined"){
+    sql = "SELECT * FROM Post WHERE (title LIKE '%" + post + "%');";
+      connection.query(sql, function (err, result, fields) {
+        console.log(result);
+        obj = {
+          book_result: result
+        };
+        res.render('searchPostResult', obj);
+      });
+  }
+  else if(typeof post_tag != "undefined"){
+    sql = "SELECT * FROM Post RIGHT JOIN (SELECT post_id FROM Post_Tag WHERE content LIKE '%"+post_tag+"%')t2\
+    ON Post.post_id = t2.post_id;";
+      connection.query(sql, function (err, result, fields) {
+        console.log(result);
+        obj = {
+          book_result: result
+        };
+        res.render('searchPostResult', obj);
       });
   }
 
