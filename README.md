@@ -1,6 +1,9 @@
 # BookSeller
-###### 2019년 봄학기 database수업 프로젝트 
+###### nodejs + mysql 을 활용한 2019년 봄학기 database수업 프로젝트 
 
+#### 보고서
+##### [DB schema 와 ER diagram](https://github.com/dlwlgus53/bookSeller/blob/master/DB%20Schemas%20and%20ER%20Diagram.pdf)
+##### [final 발표자료](https://github.com/dlwlgus53/bookSeller/blob/master/05-final%20ppt.pdf)
 
 ##### 실행방법
 
